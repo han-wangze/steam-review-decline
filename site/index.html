@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Steam 新游口碑风险预警</title>
+<title>Steam 游戏早期评论与后续档位变化</title>
 <style>
   :root {
     --bg: #fbfbfd;
@@ -92,8 +92,8 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>Steam 新游口碑风险预警</h1>
-    <p>用上线 30 天内就能看到的评论结构，判断这款游戏一年后会不会掉出「好评」档。</p>
+    <h1>Steam 游戏早期评论与后续档位变化</h1>
+    <p>用首条评论后 30 天的评论结构，预测第 30–365 天新增评论形成的档位是否会低于首月。</p>
     <p class="base" id="base"></p>
     <div class="stats" id="stats"></div>
     <div class="note" id="note"></div>
@@ -116,7 +116,7 @@
   </div>
 
   <div class="foot">
-    <span class="pill">标签口径</span>上线 30 天内档位属于好评（≥70% 好评率），而第 30–365 天不再是好评（两段不重叠）<br />
+    <span class="pill">标签口径</span>首月档位属于好评（≥70% 好评率），而第 30–365 天档位不属于好评；两段窗口不重叠，<b>不等于 Steam 商店页展示的整体评价档位</b><br />
     <span class="pill">概率口径</span>按年用「上一年已观测的降档率」做先验校正，测试期校准误差 ECE 0.050 → 0.022；校正只平移截距，年内排序严格不变<br />
     <span class="pill">数据</span>HuggingFace <code>adde023/steam-reviews</code>（1.139 亿条评论）× 12.4 万款游戏元数据<br />
     <span class="pill">诚实边界</span>评论不等于销量；只覆盖 PC Steam；模型不估计"做了某事会怎样"
@@ -164,7 +164,7 @@ function initStats() {
     <div class="stat"><b>${fmtNum(m.positives_oos ?? 0)}</b><span>样本外真实掉档</span></div>`;
   const b = document.getElementById("base");
   if (b && m.test_base_rate != null) {
-    b.innerHTML = `风险分 = 未来 11 个月掉出「好评」档的预测概率。测试集基准 <b>${(m.test_base_rate * 100).toFixed(1)}%</b>；` +
+    b.innerHTML = `风险分 = 第 30–365 天档位低于首月的预测概率。测试集基准 <b>${(m.test_base_rate * 100).toFixed(1)}%</b>；` +
       `模型打分前 10% 的游戏里，<b>${(m.test_p_at_10 * 100).toFixed(1)}%</b> 真的掉了档（口径：2019–2022 全部测试样本）。`;
   }
   document.getElementById("note").textContent =
