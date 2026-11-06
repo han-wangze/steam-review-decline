@@ -2,8 +2,8 @@
 
 命名约定
 --------
-- 带 `e_` 前缀的是"早期窗口"统计，允许进模型
-- 不带前缀但实际来自 30 天窗口的（playtime_med 等）由 aggregate.py 保证窗口边界
+- FEATURES 里的每一项都必须在 t0+30d 时点可观测
+- 窗口边界由 aggregate.py 保证（它只在 [t0, t0+30d] 内计算 playtime / numgames 等）
 - **任何全量统计（n_all / up_all / t_max）都不允许出现在 FEATURES 里**，
   它们只在打标签时使用，见 src/label.py
 """

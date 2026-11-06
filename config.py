@@ -11,13 +11,18 @@ WINDOWS_DIR = DATA / "windows"        # 每个分片的聚合结果
 OUT = ROOT / "out"
 SITE = ROOT / "site"
 
-# 复用已有的元数据（12.4 万款游戏）
-META_PARQUET = Path("D:/workbuddy_project/项目/dataset_probe/steam_games.parquet")
+# 发行日期小表（两列，约 3MB，随仓库一起分发）。
+# 由 src/fetch_meta.py 从完整元数据抽取而来，不依赖本机路径。
+META_PARQUET = DATA / "game_release_dates.parquet"
+META_HF_URL = ("https://huggingface.co/datasets/FronkonGames/steam-games-dataset"
+               "/resolve/main/data/train-00000-of-00001.parquet")
 
 # ---- 数据源 ----
 HF_PART_URL = "https://huggingface.co/datasets/adde023/steam-reviews/resolve/main/part.{}.parquet"
-PART_STEP = 6                          # 步长 6 → 111 个分片（约 2.7M 条评论）
-PARTS = list(range(0, 665, PART_STEP))
+PART_STEP = 3                          # 步长 3 → 221 个分片
+# 数据集实有 part.0–662（part.663/664 返回 404），所以上界写 663 而不是 665。
+# 用 665 会让 --refresh 每次都去请求一个不存在的分片。
+PARTS = list(range(0, 663, PART_STEP))
 COLS = [
     "appid", "game", "timestamp_created", "voted_up",
     "author_playtime_at_review", "author_num_games_owned",

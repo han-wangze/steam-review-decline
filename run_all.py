@@ -1,9 +1,9 @@
 """一条命令跑完整条链路：聚合 → 标签 → 建模 → 导出。
 
     python run_all.py            # 增量跑（已有聚合结果会跳过）
-    python run_all.py --refresh  # 强制重新下载并聚合全部分片（约 10 分钟）
+    python run_all.py --refresh  # 强制重新下载并聚合全部分片（222 个，约 12 分钟）
 
-依赖：pandas / numpy / pyarrow / scikit-learn，以及系统里的 curl。
+依赖：pandas / numpy / pyarrow / scikit-learn。下载走 urllib，不需要 curl。
 """
 from __future__ import annotations
 
@@ -36,6 +36,7 @@ def main() -> None:
     t0 = time.time()
     if not args.skip_aggregate:
         run("src/aggregate.py", ["--force"] if args.refresh else [])
+    run("src/fetch_meta.py")   # 缺发行日期表时才下载，已有则跳过
     run("src/label.py")
     run("src/check.py")
     run("src/train.py")

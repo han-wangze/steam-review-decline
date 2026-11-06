@@ -70,9 +70,9 @@
 | 数据 | 来源 | 规模 | 用途 |
 |---|---|---|---|
 | 评论 | HuggingFace [`adde023/steam-reviews`](https://huggingface.co/datasets/adde023/steam-reviews) | 1.139 亿条，665 个 parquet 分片 | 全部特征与标签 |
-| 元数据 | HuggingFace [`FronkonGames/steam-games-dataset`](https://huggingface.co/datasets/FronkonGames/steam-games-dataset) | 12.4 万款游戏，192 MB | 发行日期（用于校准"首条评论 ≈ 上线日"） |
+| 元数据 | HuggingFace [`FronkonGames/steam-games-dataset`](https://huggingface.co/datasets/FronkonGames/steam-games-dataset) | 12.4 万款游戏，184 MB | 只取 `appID + release_date` 两列，抽成 1.2 MB 随仓库分发 |
 
-**本次使用的分片**：`part.{0, 3, 6, …, 663}`，共 222 个（221 个成功）。分片按 `appid` 升序排列，取步长 3 相当于覆盖全部游戏的约三分之一，共聚合出 **35,487 款游戏**。
+**本次使用的分片**：`part.{0, 3, 6, …, 660}`，共 221 个（数据集实有 part.0–662）。分片按 `appid` 升序排列，取步长 3 相当于覆盖全部游戏的约三分之一，共聚合出 **35,487 款游戏**。
 
 单条评论的字段（`ajaxappreviews` 与数据集一致）：
 
@@ -355,8 +355,11 @@ NB(p_t) = TP/N − FP/N × p_t/(1 − p_t)
 
 ```bash
 pip install -r requirements.txt
-python run_all.py            # 增量跑：聚合 → 标签 → 审计 → 建模 → 导出
-python run_all.py --refresh  # 强制重新聚合全部 222 个分片（约 12 分钟）
+python run_all.py            # 增量跑：元数据 → 聚合 → 标签 → 审计 → 建模 → 稳健性 → 导出
+python run_all.py --refresh  # 强制重新聚合全部 221 个分片（约 12 分钟）
+
+# 只需要重建发行日期表时（缺失会自动下载 184MB 完整元数据并抽取两列）
+python src/fetch_meta.py
 ```
 
 产物：
@@ -369,6 +372,7 @@ site/index.html          可直接双击打开（数据内联在 data.js）
 ```
 
 依赖：`pandas` / `numpy` / `pyarrow` / `scikit-learn`，以及能访问 HuggingFace 的网络。
+下载统一走 `urllib` 并显式禁用代理（沙箱网关会截走请求并返回 502），不需要 curl。
 
 **验收自检**：`src/check.py` 会对"特征无泄漏 / 窗口完整 / 计数单调 / 标签与前缀一致 / 切分不重叠"逐条断言，跑不过直接退出。
 
@@ -381,6 +385,7 @@ steam-risk/
 ├── config.py              全部口径常量（窗口、阈值、排除名单）
 ├── run_all.py             一条命令跑完整条链路
 ├── src/
+│   ├── fetch_meta.py      从完整元数据抽取 appID + release_date（1.2 MB）
 │   ├── aggregate.py       分片 → 游戏级窗口统计（一次扫描算所有窗口）
 │   ├── label.py           三种标签口径 + 筛选漏斗 + 新旧对照
 │   ├── features.py        特征构造 + 消融分组
@@ -389,7 +394,8 @@ steam-risk/
 │   ├── drift.py           漂移诊断与三种处理方案的对比实验
 │   ├── robustness.py      滚动切分 / 门槛敏感性 / 决策曲线
 │   └── export.py          导出 JSON + 归因
-├── data/windows/          222 个分片的聚合结果
+├── data/windows/          221 个分片的聚合结果
+├── data/game_release_dates.parquet   发行日期小表（1.2 MB，两列）
 ├── out/                   样本、指标、预测
 └── site/                  单页前端（无后端、无 CDN）
 ```

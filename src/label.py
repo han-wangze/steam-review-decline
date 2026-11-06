@@ -134,18 +134,20 @@ def build_labels(df: pd.DataFrame) -> pd.DataFrame:
     d["is_drop_all"] = val_all.where(ok_all).astype("Int64")
 
     # ---- 发行日校准 ----
-    if META_PARQUET.exists():
-        meta = pd.read_parquet(META_PARQUET, columns=["appID", "release_date"])
-        meta["key"] = meta.appID.astype(str).str.strip()
-        meta["rel"] = meta.release_date.map(_parse_release)
-        m = dict(zip(meta.key, meta.rel))
-        d["release_date"] = d.appid.astype(str).map(m)
-        d["t0_dt"] = pd.to_datetime(d.t0, unit="s")
-        d["rel_lag_d"] = (d.t0_dt - d.release_date).dt.days
-    else:
-        d["release_date"] = pd.NaT
-        d["t0_dt"] = pd.to_datetime(d.t0, unit="s")
-        d["rel_lag_d"] = np.nan
+    # 缺文件时直接报错，不要退回 NaN。退化版本会被下游"排除无发行日期"整段滤掉，
+    # 结果是空样本却不报错——这种静默失败比崩溃难查得多。
+    if not META_PARQUET.exists():
+        raise FileNotFoundError(
+            f"缺少发行日期表：{META_PARQUET}\n"
+            f"先运行： python src/fetch_meta.py"
+        )
+    meta = pd.read_parquet(META_PARQUET, columns=["appID", "release_date"])
+    meta["key"] = meta.appID.astype(str).str.strip()
+    meta["rel"] = meta.release_date.map(_parse_release)
+    m = dict(zip(meta.key, meta.rel))
+    d["release_date"] = d.appid.astype(str).map(m)
+    d["t0_dt"] = pd.to_datetime(d.t0, unit="s")
+    d["rel_lag_d"] = (d.t0_dt - d.release_date).dt.days
 
     # ---- 完整性 ----
     d["window_complete"] = (d.t0 + LABEL_WINDOW_D * DAY) <= SNAPSHOT_TS
