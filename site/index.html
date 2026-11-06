@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Steam 新游口碑风险预警</title>
+<style>
+  :root {
+    --bg: #fbfbfd;
+    --card: #ffffff;
+    --line: #e5e7eb;
+    --text: #18181b;
+    --muted: #71717a;
+    --risk: #b91c1c;
+    --risk-bg: #fef2f2;
+    --ok: #047857;
+    --ok-bg: #ecfdf5;
+    --accent: #1d4ed8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.6 -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 32px 20px 64px; }
+  header h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.2px; }
+  header p { margin: 0; color: var(--muted); font-size: 14px; }
+  header p.base { margin-top: 8px; font-size: 13px; color: var(--muted); }
+  header p.base b { color: var(--text); font-weight: 650; }
+  .stats { display: flex; gap: 28px; margin: 22px 0 8px; flex-wrap: wrap; }
+  .stat b { font-size: 22px; font-weight: 650; display: block; }
+  .stat span { color: var(--muted); font-size: 12px; }
+  .note {
+    margin-top: 14px; padding: 10px 14px; background: #f4f4f5; border-left: 3px solid var(--line);
+    color: var(--muted); font-size: 12.5px; border-radius: 4px;
+  }
+  .bar { display: flex; gap: 10px; align-items: center; margin: 22px 0 12px; flex-wrap: wrap; }
+  input[type="search"], select {
+    padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px;
+    background: #fff; font-size: 13px; color: var(--text); outline: none;
+  }
+  input[type="search"] { width: 220px; }
+  input[type="search"]:focus, select:focus { border-color: var(--accent); }
+  .toggle { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+
+  .layout { display: grid; grid-template-columns: 1fr 340px; gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  .list { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .row {
+    display: grid; grid-template-columns: 26px 1fr 92px 78px 78px 62px; gap: 10px;
+    padding: 9px 14px; border-bottom: 1px solid #f4f4f5; cursor: pointer; align-items: center;
+  }
+  .row:last-child { border-bottom: none; }
+  .row:hover { background: #fafafa; }
+  .row.active { background: #f0f4ff; }
+  .row.head {
+    cursor: default; color: var(--muted); font-size: 12px; background: #fcfcfd;
+    position: sticky; top: 0; z-index: 2;
+  }
+  .row.head:hover { background: #fcfcfd; }
+  .rank { color: var(--muted); font-size: 12px; text-align: right; }
+  .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .name small { color: var(--muted); margin-left: 6px; font-size: 11.5px; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
+  .riskbar { height: 5px; background: #f1f1f3; border-radius: 3px; overflow: hidden; margin-top: 3px; }
+  .riskbar i { display: block; height: 100%; background: var(--risk); }
+  .tag { font-size: 11px; padding: 1px 6px; border-radius: 10px; }
+  .tag.drop { color: var(--risk); background: var(--risk-bg); }
+  .tag.safe { color: var(--ok); background: var(--ok-bg); }
+  .tag.none { color: var(--muted); background: #f4f4f5; }
+
+  .panel {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 18px; position: sticky; top: 20px;
+  }
+  .panel h2 { font-size: 16px; margin: 0 0 4px; }
+  .panel .sub { color: var(--muted); font-size: 12.5px; margin-bottom: 14px; }
+  .kv { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; }
+  .kv span { color: var(--muted); }
+  .kv b { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .hr { height: 1px; background: var(--line); margin: 12px 0; }
+  .why { font-size: 12.5px; color: var(--muted); margin-bottom: 8px; }
+  .why-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; }
+  .why-item i { flex: 1; height: 6px; background: var(--risk-bg); border-radius: 3px; position: relative; }
+  .why-item i em { position: absolute; left: 0; top: 0; bottom: 0; background: var(--risk); border-radius: 3px; }
+  .empty { padding: 40px 16px; text-align: center; color: var(--muted); font-size: 13px; }
+  .foot { margin-top: 26px; color: var(--muted); font-size: 12px; line-height: 1.8; }
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 4px; background: #f4f4f5; margin-right: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Steam 新游口碑风险预警</h1>
+    <p>用上线 30 天内就能看到的评论结构，判断这款游戏一年后会不会掉出「好评」档。</p>
+    <p class="base" id="base"></p>
+    <div class="stats" id="stats"></div>
+    <div class="note" id="note"></div>
+  </header>
+
+  <div class="bar">
+    <input type="search" id="q" placeholder="搜索游戏名…" />
+    <select id="year"><option value="">全部年份</option></select>
+    <select id="sort">
+      <option value="risk">按风险排序</option>
+      <option value="ratio">按早期好评率</option>
+      <option value="n">按评论量</option>
+    </select>
+    <label class="toggle"><input type="checkbox" id="oos" checked /> 只看样本外预测（2022 年上线）</label>
+  </div>
+
+  <div class="layout">
+    <div class="list" id="list"></div>
+    <aside class="panel" id="panel"><div class="empty">选择左侧任意一款游戏，查看风险来源</div></aside>
+  </div>
+
+  <div class="foot">
+    <span class="pill">标签口径</span>上线 30 天内档位属于好评（≥70% 好评率），而第 30–365 天不再是好评（两段不重叠）<br />
+    <span class="pill">概率口径</span>按年用「上一年已观测的降档率」做先验校正，测试期校准误差 ECE 0.050 → 0.022；校正只平移截距，年内排序严格不变<br />
+    <span class="pill">数据</span>HuggingFace <code>adde023/steam-reviews</code>（1.139 亿条评论）× 12.4 万款游戏元数据<br />
+    <span class="pill">诚实边界</span>评论不等于销量；只覆盖 PC Steam；模型不估计"做了某事会怎样"
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+const state = { all: [], rows: [], sel: null, meta: {} };
+
+const fmtPct = v => (v == null ? "—" : (v * 100).toFixed(1) + "%");
+const fmtNum = v => (v == null ? "—" : v.toLocaleString("en-US"));
+
+const boot = window.__DATA__
+  ? Promise.resolve(window.__DATA__)
+  : fetch("data.json").then(r => r.json());
+
+boot
+  .then(d => {
+    state.all = d.games;
+    state.meta = d.meta;
+    initStats();
+    initYears();
+    render();
+    // 深链接：#top 选中榜首，#<appid> 选中某款游戏（便于演示与分享）
+    const h = location.hash.slice(1);
+    if (h === "top") select(0);
+    else if (h) {
+      const i = state.rows.findIndex(g => String(g.appid) === h);
+      if (i >= 0) select(i);
+    }
+  })
+  .catch(() => {
+    document.getElementById("list").innerHTML =
+      '<div class="empty">还没生成 data.json，先运行 <code>python run_all.py</code></div>';
+  });
+
+function initStats() {
+  const m = state.meta;
+  const pos = m.positives, n = m.n_games;
+  document.getElementById("stats").innerHTML = `
+    <div class="stat"><b>${fmtNum(n)}</b><span>建模样本</span></div>
+    <div class="stat"><b>${fmtPct(m.base_rate)}</b><span>一年内掉档比例</span></div>
+    <div class="stat"><b>${fmtNum(m.n_out_of_sample)}</b><span>样本外游戏</span></div>
+    <div class="stat"><b>${fmtNum(m.positives_oos ?? 0)}</b><span>样本外真实掉档</span></div>`;
+  const b = document.getElementById("base");
+  if (b && m.test_base_rate != null) {
+    b.innerHTML = `风险分 = 未来 11 个月掉出「好评」档的预测概率。测试集基准 <b>${(m.test_base_rate * 100).toFixed(1)}%</b>；` +
+      `模型打分前 10% 的游戏里，<b>${(m.test_p_at_10 * 100).toFixed(1)}%</b> 真的掉了档（口径：2019–2022 全部测试样本）。`;
+  }
+  document.getElementById("note").textContent =
+    "模型只用 2021 年及以前上线的游戏训练；勾选「只看样本外」后展示的是 2022 年上线的游戏，" +
+    "这些游戏的标签在训练时完全没见过。";
+}
+
+function initYears() {
+  const ys = [...new Set(state.all.map(g => g.year))].sort((a, b) => b - a);
+  const sel = document.getElementById("year");
+  ys.forEach(y => {
+    const o = document.createElement("option");
+    o.value = y; o.textContent = y + " 年";
+    sel.appendChild(o);
+  });
+}
+
+function render() {
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  const y = document.getElementById("year").value;
+  const oos = document.getElementById("oos").checked;
+  const sort = document.getElementById("sort").value;
+
+  let rows = state.all.filter(g =>
+    (!q || g.game.toLowerCase().includes(q)) &&
+    (!y || String(g.year) === y) &&
+    (!oos || !g.in_sample)
+  );
+  if (sort === "risk") rows.sort((a, b) => b.risk - a.risk);
+  if (sort === "ratio") rows.sort((a, b) => b.early_ratio - a.early_ratio);
+  if (sort === "n") rows.sort((a, b) => b.n_30 - a.n_30);
+
+  state.rows = rows.slice(0, 300);
+  const list = document.getElementById("list");
+  if (!state.rows.length) {
+    list.innerHTML = '<div class="empty">没有符合条件的游戏</div>';
+    return;
+  }
+  list.innerHTML =
+    `<div class="row head"><div class="rank">#</div><div>游戏</div>
+      <div class="num">风险分</div><div class="num">首月好评</div>
+      <div class="num">后期好评</div><div class="num">实际</div></div>` +
+    state.rows.map((g, i) => rowHtml(g, i)).join("");
+
+  list.querySelectorAll(".row:not(.head)").forEach(el =>
+    el.addEventListener("click", () => select(+el.dataset.i)));
+}
+
+function rowHtml(g, i) {
+  const actual = g.in_sample
+    ? '<span class="tag none">训练内</span>'
+    : (g.is_drop ? '<span class="tag drop">掉档</span>' : '<span class="tag safe">守住</span>');
+  return `<div class="row ${state.sel === i ? "active" : ""}" data-i="${i}">
+    <div class="rank">${i + 1}</div>
+    <div class="name">${esc(g.game)}<small>${g.year}</small></div>
+    <div class="num">${fmtPct(g.risk)}<div class="riskbar"><i style="width:${Math.min(g.risk * 130, 100)}%"></i></div></div>
+    <div class="num">${fmtPct(g.early_ratio)}</div>
+    <div class="num">${fmtPct(g.late_ratio)}</div>
+    <div class="num">${actual}</div>
+  </div>`;
+}
+
+function select(i) {
+  state.sel = i;
+  render();
+  if (state.rows[i]) history.replaceState(null, "", "#" + state.rows[i].appid);
+  const g = state.rows[i];
+  if (!g) return;
+  const maxC = Math.max(...(g.top || []).map(t => Math.abs(t.contribution)), 1e-6);
+  const why = (g.top || []).length
+    ? g.top.map(t => `<div class="why-item"><span style="width:104px">${esc(t.feature)}</span>
+        <i><em style="width:${Math.abs(t.contribution) / maxC * 100}%"></em></i>
+        <span style="width:34px;text-align:right;color:var(--muted)">+${t.contribution.toFixed(2)}</span></div>`).join("")
+    : '<div class="why">没有显著推高风险的特征</div>';
+
+  document.getElementById("panel").innerHTML = `
+    <h2>${esc(g.game)}</h2>
+    <div class="sub">${g.year} 年上线 · appid ${g.appid}</div>
+    <div class="kv"><span>预测掉档概率</span><b style="color:var(--risk)">${fmtPct(g.risk)}</b></div>
+    <div class="kv"><span>首月好评率</span><b>${fmtPct(g.early_ratio)}（${g.n_30} 条）</b></div>
+    <div class="kv"><span>后期好评率</span><b>${fmtPct(g.late_ratio)}（${g.n_365 - g.n_30} 条）</b></div>
+    <div class="kv"><span>档位变化</span><b>${tierCn(g.early_tier)} → ${tierCn(g.late_tier)}</b></div>
+    ${g.in_sample ? "" : `<div class="kv"><span>实际结果</span><b style="color:${g.is_drop ? "var(--risk)" : "var(--ok)"}">${g.is_drop ? "掉档" : "守住"}</b></div>`}
+    <div class="hr"></div>
+    <div class="why">风险主要来自（前 3 项）：</div>
+    ${why}
+    <div class="hr"></div>
+    <div class="why">上线后累计好评率走势（每 30 天）：</div>
+    ${spark(g)}
+  `;
+}
+
+function spark(g) {
+  const pts = [];
+  for (let i = 0; i < g.curve_n.length; i++) {
+    if (g.curve_n[i] > 0) pts.push([i * 30, g.curve_up[i] / g.curve_n[i]]);
+  }
+  if (pts.length < 2) return '<div class="why">评论不足，画不出走势</div>';
+
+  const W = 300, H = 104, padL = 26, padR = 10, padT = 12, padB = 18;
+  // 纵轴按数据自适应，但始终把 70% 门槛纳进来
+  const vals = pts.map(p => p[1]).concat([0.7]);
+  let lo = Math.max(0, Math.min(...vals) - 0.04);
+  let hi = Math.min(1, Math.max(...vals) + 0.04);
+  if (hi - lo < 0.25) { const mid = (hi + lo) / 2; lo = Math.max(0, mid - 0.125); hi = Math.min(1, mid + 0.125); }
+
+  const X = d => padL + (d / 360) * (W - padL - padR);
+  const Y = v => H - padB - ((v - lo) / (hi - lo)) * (H - padT - padB);
+  const path = pts.map((p, i) => `${i ? "L" : "M"}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(" ");
+  const last = pts[pts.length - 1];
+  const ticks = [lo, (lo + hi) / 2, hi].map(v =>
+    `<text x="2" y="${(Y(v) + 3).toFixed(1)}" font-size="8.5" fill="#a1a1aa">${(v * 100).toFixed(0)}%</text>`).join("");
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="上线后累计好评率走势">
+    <line x1="${padL}" y1="${Y(0.7).toFixed(1)}" x2="${W - padR}" y2="${Y(0.7).toFixed(1)}"
+          stroke="#e5e7eb" stroke-dasharray="3 3" />
+    <text x="${W - padR}" y="${(Y(0.7) - 3).toFixed(1)}" font-size="8.5" fill="#a1a1aa" text-anchor="end">70% 门槛</text>
+    ${ticks}
+    <path d="${path}" fill="none" stroke="#1d4ed8" stroke-width="1.8" stroke-linejoin="round" />
+    <circle cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="2.6" fill="#1d4ed8" />
+    <text x="${padL}" y="${H - 4}" font-size="8.5" fill="#a1a1aa">0</text>
+    <text x="${W - padR}" y="${H - 4}" font-size="8.5" fill="#a1a1aa" text-anchor="end">360 天</text>
+  </svg>`;
+}
+
+const TIERS = {
+  overwhelmingly_positive: "好评如潮", very_positive: "特别好评", positive: "好评",
+  mostly_positive: "多半好评", mixed: "褒贬不一", mostly_negative: "多半差评",
+  very_negative: "特别差评", overwhelmingly_negative: "差评如潮", insufficient: "评论不足"
+};
+const tierCn = t => TIERS[t] || "—";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+["q", "year", "sort", "oos"].forEach(id =>
+  document.getElementById(id).addEventListener("input", () => { state.sel = null; render(); }));
+</script>
+</body>
+</html>
