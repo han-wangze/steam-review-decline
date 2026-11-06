@@ -4,6 +4,8 @@
 
 **在线看板**：https://han-wangze.github.io/steam-review-decline/
 
+[![看板截图](docs/preview.png)](https://han-wangze.github.io/steam-review-decline/)
+
 ## 1. 研究问题
 
 一款游戏上线后，发行方或开发者通常会在首月结束时判断：口碑是在稳住，还是在往下走。这个判断目前主要靠人工看好评率。
