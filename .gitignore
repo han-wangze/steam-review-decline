@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# 生成物中与 site/data.js 完全重复的两份，不重复入库
+out/predictions.json
+site/data.json
+
+# 本地临时截图
+docs/_zoom.png
