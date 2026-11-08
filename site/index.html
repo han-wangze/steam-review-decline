@@ -107,7 +107,7 @@
       <option value="ratio">按早期好评率</option>
       <option value="n">按评论量</option>
     </select>
-    <label class="toggle"><input type="checkbox" id="oos" checked /> 只看样本外预测（2019–2022 上线）</label>
+    <label class="toggle"><input type="checkbox" id="oos" checked /> 只看样本外预测（首条评论 2019–2022）</label>
   </div>
 
   <div class="layout">
@@ -168,7 +168,7 @@ function initStats() {
       `模型打分前 10% 的游戏里，<b>${(m.test_p_at_10 * 100).toFixed(1)}%</b> 真的掉了档（口径：2019–2022 全部测试样本）。`;
   }
   document.getElementById("note").textContent =
-    "模型只用 2018 年及以前上线的游戏训练；勾选「只看样本外」后展示的是 2019–2022 年上线的游戏，" +
+    "模型只用首条评论在 2018 年及以前的游戏训练；勾选「只看样本外」后展示的是首条评论在 2019–2022 年的游戏，" +
     "这些游戏的标签在训练时完全没见过。";
 }
 
@@ -242,7 +242,7 @@ function select(i) {
 
   document.getElementById("panel").innerHTML = `
     <h2>${esc(g.game)}</h2>
-    <div class="sub">${g.year} 年上线 · appid ${g.appid}</div>
+    <div class="sub">${g.year} 年起有评论 · appid ${g.appid}</div>
     <div class="kv"><span>预测掉档概率</span><b style="color:var(--risk)">${fmtPct(g.risk)}</b></div>
     <div class="kv"><span>首月好评率</span><b>${fmtPct(g.early_ratio)}（${g.n_30} 条）</b></div>
     <div class="kv"><span>后期好评率</span><b>${fmtPct(g.late_ratio)}（${g.n_365 - g.n_30} 条）</b></div>
@@ -252,7 +252,7 @@ function select(i) {
     <div class="why">风险主要来自（前 3 项）：</div>
     ${why}
     <div class="hr"></div>
-    <div class="why">上线后累计好评率走势（每 30 天）：</div>
+    <div class="why">首条评论后累计好评率走势（每 30 天）：</div>
     ${spark(g)}
   `;
 }
@@ -278,7 +278,7 @@ function spark(g) {
   const ticks = [lo, (lo + hi) / 2, hi].map(v =>
     `<text x="2" y="${(Y(v) + 3).toFixed(1)}" font-size="8.5" fill="#a1a1aa">${(v * 100).toFixed(0)}%</text>`).join("");
 
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="上线后累计好评率走势">
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="首条评论后累计好评率走势">
     <line x1="${padL}" y1="${Y(0.7).toFixed(1)}" x2="${W - padR}" y2="${Y(0.7).toFixed(1)}"
           stroke="#e5e7eb" stroke-dasharray="3 3" />
     <text x="${W - padR}" y="${(Y(0.7) - 3).toFixed(1)}" font-size="8.5" fill="#a1a1aa" text-anchor="end">70% 门槛</text>
