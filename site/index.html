@@ -107,7 +107,7 @@
       <option value="ratio">按早期好评率</option>
       <option value="n">按评论量</option>
     </select>
-    <label class="toggle"><input type="checkbox" id="oos" checked /> 只看样本外预测（2022 年上线）</label>
+    <label class="toggle"><input type="checkbox" id="oos" checked /> 只看样本外预测（2019–2022 上线）</label>
   </div>
 
   <div class="layout">
@@ -159,7 +159,7 @@ function initStats() {
   const pos = m.positives, n = m.n_games;
   document.getElementById("stats").innerHTML = `
     <div class="stat"><b>${fmtNum(n)}</b><span>建模样本</span></div>
-    <div class="stat"><b>${fmtPct(m.base_rate)}</b><span>一年内掉档比例</span></div>
+    <div class="stat"><b>${fmtPct(m.base_rate)}</b><span>后续 11 个月掉档比例</span></div>
     <div class="stat"><b>${fmtNum(m.n_out_of_sample)}</b><span>样本外游戏</span></div>
     <div class="stat"><b>${fmtNum(m.positives_oos ?? 0)}</b><span>样本外真实掉档</span></div>`;
   const b = document.getElementById("base");
@@ -168,7 +168,7 @@ function initStats() {
       `模型打分前 10% 的游戏里，<b>${(m.test_p_at_10 * 100).toFixed(1)}%</b> 真的掉了档（口径：2019–2022 全部测试样本）。`;
   }
   document.getElementById("note").textContent =
-    "模型只用 2021 年及以前上线的游戏训练；勾选「只看样本外」后展示的是 2022 年上线的游戏，" +
+    "模型只用 2018 年及以前上线的游戏训练；勾选「只看样本外」后展示的是 2019–2022 年上线的游戏，" +
     "这些游戏的标签在训练时完全没见过。";
 }
 

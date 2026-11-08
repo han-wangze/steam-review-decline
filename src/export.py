@@ -2,8 +2,8 @@
 
 两个诚实性设计
 --------------
-1. **训练/测试分开标注**。模型只用 2021 年及以前的游戏训练，2022 年的预测是
-   真正的样本外。前端默认只展示样本外，样本内结果标注 `in_sample`。
+1. **训练/测试分开标注**。模型只用 2018 年及以前的游戏训练，与 src/train.py 的
+   切分保持一致；2019–2022 的预测是样本外。前端标注 `in_sample`，默认只看样本外。
 2. **每条预测都给归因**。LogReg 的系数 × 标准化后的特征值就是该样本的贡献，
    正贡献 = 推高风险。前三条写进 JSON，前端直接展示，不用再算。
 """
@@ -47,7 +47,9 @@ def main() -> None:
     y = d.is_drop_late.astype(int).values
     yr = d.year.values
 
-    train = yr <= 2021
+    # 必须与 src/train.py 的切分一致（≤2018）。否则页面展示的榜单由另一个模型生成，
+    # 首屏引用的 AUC / P@10% 与眼前这份排序对不上，读者无法核实。
+    train = yr <= 2018
     model = make_pipeline(StandardScaler(),
                           LogisticRegression(max_iter=2000))
     model.fit(X.fillna(X[train].median()).values[train], y[train])
@@ -90,7 +92,7 @@ def main() -> None:
             "risk": round(float(p[i]), 4),
             "risk_raw": round(float(p_raw[i]), 4),
             "is_drop": int(row.is_drop_late),
-            "in_sample": bool(yr[i] <= 2021),
+            "in_sample": bool(yr[i] <= 2018),
             "n_30": int(row.n_30),
             "n_365": int(row.n_365),
             "early_ratio": round(float(row.early_ratio), 4),
@@ -111,7 +113,7 @@ def main() -> None:
             "n_out_of_sample": len(oos),
             "positives": int(y.sum()),
             "base_rate": round(float(y.mean()), 4),
-            "train_max_year": 2021,
+            "train_max_year": 2018,
             "label": "上线 30 天内档位为好 → 第 30–365 天档位不再是好（窗口不重叠）",
             "calibration": "按年用上一年已观测基准率做先验校正；年内排序不变",
             "positives_oos": sum(g["is_drop"] for g in oos),
