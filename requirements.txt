@@ -4,3 +4,6 @@ pandas>=2.2,<4.0
 numpy>=1.26,<3.0
 pyarrow>=15.0,<40.0
 scikit-learn>=1.4,<2.0
+# 连续目标（Ridge 回归那条线）里用 scipy.stats.spearmanr 算相关性。
+# 它本来会作为 scikit-learn 的依赖被装上，这里显式列出，避免换环境时靠运气。
+scipy>=1.11,<2.0

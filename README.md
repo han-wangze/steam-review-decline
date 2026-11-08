@@ -2,9 +2,13 @@
 
 用 Steam 游戏的早期评论数据，研究"上线初期的评论结构"与"后续评价变化"之间的关系。
 
+**项目状态**：已完成。属历史数据上的探索性研究——没有在生产环境试过，也没有在 2024 年之后的新游戏上做过外部验证。
+
 **在线看板**：https://han-wangze.github.io/steam-review-decline/
 
 [![看板截图](docs/preview.png)](https://han-wangze.github.io/steam-review-decline/)
+
+*看板默认视图：只显示 2019–2022 年上线的样本外游戏（1,398 款），按风险分排序；数据截至 2023-11。*
 
 ## 1. 研究问题
 
@@ -59,10 +63,12 @@ t0 ──── 30 天 ──────── 365 天
 
 | 数据 | 来源 | 规模 | 用途 |
 |---|---|---|---|
-| 评论 | HuggingFace [`adde023/steam-reviews`](https://huggingface.co/datasets/adde023/steam-reviews) | 1.139 亿条，665 个 parquet 分片 | 特征与标签 |
-| 元数据 | HuggingFace [`FronkonGames/steam-games-dataset`](https://huggingface.co/datasets/FronkonGames/steam-games-dataset) | 12.4 万款游戏 | 只取 `appID + release_date`，抽成 1.2MB 随仓库分发 |
+| 评论 | HuggingFace [`adde023/steam-reviews`](https://huggingface.co/datasets/adde023/steam-reviews) | 1.139 亿条（113,883,717 行），663 个 parquet 分片，23.5 GB | 特征与标签 |
+| 元数据 | HuggingFace [`FronkonGames/steam-games-dataset`](https://huggingface.co/datasets/FronkonGames/steam-games-dataset) | 12.4 万款游戏 | 只取 `appID + release_date`，抽成 1.1 MB 随仓库分发 |
 
 数据集实有 `part.0`–`part.662`（663/664 返回 404）。本项目取步长 3，共 **221 个分片**，聚合出 35,487 款有评论记录的游戏。
+
+数据集许可为 **CC BY-NC 4.0**（非商业使用）；本仓库只保存按游戏聚合的统计量，不重分发评论原文。
 
 ### 3.2 样本筛选
 
@@ -128,7 +134,7 @@ t0 ──── 30 天 ──────── 365 天
 - 模型：Logistic Regression（L2，`C=1.0`），Random Forest 作对照
 - 不使用类别权重。实测 `class_weight='balanced'` 会让 AUC 保持不变（0.886）而 ECE 从 0.050 恶化到 0.253——它把概率拉到 50% 附近，破坏校准
 - 主指标：AP / PR-AUC（正例 8.5%，accuracy 无意义），辅以 AUC、P@10%、lift、ECE
-- 时间切分而非随机切分；测试集只评估一次
+- 时间切分而非随机切分；没有单独的验证段（未做超参数搜索，模型配置在评估前固定），测试集只评估一次
 - 未做超参数搜索：训练集只有 130 个正例，调参容易拟合噪声
 
 ## 5. 实验结果
@@ -144,6 +150,8 @@ t0 ──── 30 天 ──────── 365 天
 
 `P@10%` 是按预测分数排序取前 10%（139 款），与"预测概率 ≥ 10%"是两种不同的筛选方式，lift 不能混用。
 
+指标口径：AUC 为 ROC 曲线下面积；AP 为 average precision（PR 曲线下面积，正例稀少时比 AUC 更严格）；lift 为该筛选方式的命中率 ÷ 测试集基准率（6.1%）；ECE 把预测概率分 10 箱后，取各箱 |平均预测 − 实际正例率| 的样本加权平均；AUC 的 95% 区间来自 500 次 bootstrap 重采样。
+
 ### 5.2 消融
 
 | 特征组 | AUC | AP |
@@ -151,7 +159,7 @@ t0 ──── 30 天 ──────── 365 天
 | A. 仅好评率 | 0.872 | 0.327 |
 | B. 好评率 + 评论量 | 0.884 | 0.295 |
 | C. 去掉好评率（其余 11 个） | 0.674 | 0.112 |
-| D. 去掉评论量（其余 10 个） | 0.885 | 0.346 |
+| D. 去掉评论量系列 3 个（其余 9 个） | 0.885 | 0.346 |
 | E. 全特征 | 0.886 | 0.343 |
 
 C 组：去掉最强的特征后模型仍有 0.674，说明其余特征携带独立信息。D 与 E 几乎相同，说明评论量在已知好评率的条件下边际贡献很小（约 0.001），这与 §5.3 的分层结果一致。
@@ -243,9 +251,20 @@ python src/fetch_meta.py     # 只重建发行日期表（缺失时自动下载�
 python src/check.py          # 单独跑方法论审计
 ```
 
-依赖：`pandas` / `numpy` / `pyarrow` / `scikit-learn`，以及能访问 HuggingFace 的网络。下载走 `urllib` 并显式禁用代理，不需要 curl。
+技术栈：
 
-审计脚本 `src/check.py` 会对以下几条做断言，不通过则退出：特征名与全量统计列无交集、365 天窗口完整、各窗口计数单调、标签与前缀一致、训练与测试年份不重叠。
+| 技术 | 用途 |
+|---|---|
+| Python 3.11+ | 全流程脚本 |
+| pandas / numpy | 分片聚合、标签构造、特征计算 |
+| pyarrow | 读写 parquet |
+| scikit-learn | LogisticRegression / RandomForest、指标与校准 |
+| scipy | 连续目标里的 Spearman 相关 |
+| 原生 HTML + 内联 SVG | 单页看板，无后端、无 CDN、无构建链 |
+
+需要能访问 HuggingFace 的网络。下载走 `urllib` 并显式禁用代理，不需要 curl。
+
+审计脚本 `src/check.py` 会对以下几条做断言，不通过则退出：特征名与全量统计列无交集、365 天窗口完整且观察期恒为 365 天、各窗口计数单调、标签与前缀一致、12 个特征缺失率低于 10%、训练与测试年份不重叠、训练与测试的正例数不低于下限。
 
 产物：
 
@@ -286,3 +305,7 @@ steam-risk/
 
 - [`docs/实验记录.md`](docs/实验记录.md)：研究过程中的主要修正与未解决的问题
 - [`docs/业务分析.md`](docs/业务分析.md)：这套结果能支持什么、不能支持什么
+
+## 10. 开发方式
+
+研究问题、标签与窗口的口径决策、结果核验由本人负责；代码实现与文档初稿在 AI 编程工具辅助下完成。所有指标由 `run_all.py` 重跑核对，关键判断（窗口切分、特征泄漏、概率校准）的过程记录在 `docs/实验记录.md` 里，可以直接对照代码复核。

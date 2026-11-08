@@ -11,7 +11,7 @@ WINDOWS_DIR = DATA / "windows"        # 每个分片的聚合结果
 OUT = ROOT / "out"
 SITE = ROOT / "site"
 
-# 发行日期小表（两列，约 3MB，随仓库一起分发）。
+# 发行日期小表（两列，约 1.1MB，随仓库一起分发）。
 # 由 src/fetch_meta.py 从完整元数据抽取而来，不依赖本机路径。
 META_PARQUET = DATA / "game_release_dates.parquet"
 META_HF_URL = ("https://huggingface.co/datasets/FronkonGames/steam-games-dataset"
