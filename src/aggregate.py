@@ -132,6 +132,17 @@ def aggregate_part(buf: bytes) -> pd.DataFrame:
     return out
 
 
+def _drop_stale(part: int) -> None:
+    """失败时删掉该分片的旧结果。
+
+    --force 会重跑全部分片，若某片下载或解析失败而旧文件还在，
+    新旧数据就会混着用：跑出来的样本看起来完整，实际不可复现。
+    """
+    f = WINDOWS_DIR / f"win_part_{part}.parquet"
+    if f.exists():
+        f.unlink()
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--workers", type=int, default=3)
@@ -158,6 +169,7 @@ def main() -> None:
     def work(p: int) -> tuple[int, int, int]:
         buf = _fetch(p)
         if buf is None:
+            _drop_stale(p)
             return p, -1, -1
         try:
             rows = aggregate_part(buf)
@@ -167,6 +179,7 @@ def main() -> None:
             return p, len(rows), 0
         except Exception as exc:                    # noqa: BLE001
             print(f"part.{p:>3} 解析失败 {exc!r}"[:160], flush=True)
+            _drop_stale(p)
             return p, -2, -2
 
     with ThreadPoolExecutor(max_workers=args.workers) as ex:
@@ -181,6 +194,10 @@ def main() -> None:
                   f"{(time.time() - t0) / 60:.1f}min", flush=True)
 
     print(f"\n完成 {ok}，失败 {fail}，耗时 {(time.time() - t0) / 60:.1f} 分钟")
+    # 失败必须中断：run_all.py 只根据退出码判断成功，若这里返回 0，
+    # 下游会在缺分片的数据上继续打标签、训练、导出，而且不报任何错。
+    if fail:
+        raise SystemExit(f"{fail} 个分片失败，已中止（避免用不完整数据继续建模）")
 
 
 if __name__ == "__main__":

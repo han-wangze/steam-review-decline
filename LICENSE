@@ -24,9 +24,16 @@ SOFTWARE.
 
 数据说明 / Data note
 
+代码部分适用上方 MIT 许可；**该许可不覆盖上游数据**。
+
 本仓库不包含 Steam 用户评论原文。`data/windows/*.parquet` 只保存按游戏聚合后的
-统计量（评论数、好评数、时长中位数等），不含任何评论文本或用户标识。
-原始数据来自 HuggingFace 公开数据集：
-  - adde023/steam-reviews
-  - FronkonGames/steam-games-dataset
-其使用条款以原数据集声明为准。
+统计量（评论数、好评数、时长中位数等），`out/*.parquet` 是从中派生的建模样本，
+均不含任何评论文本或用户标识。
+
+数据来源与版本：
+  - adde023/steam-reviews（HuggingFace），数据快照 2023-11-02，约 1.139 亿条评论。
+    上游为 Kaggle 数据集 kieranpoc/steam-reviews，数据集页面标注许可 CC BY-NC 4.0（非商业）。
+  - FronkonGames/steam-games-dataset（HuggingFace），仅取 appID 与发行日期两列。
+
+再分发或商业使用前请自行核对上述数据集页面的当前许可条款；本仓库不对上游数据的
+授权范围作任何额外声明。

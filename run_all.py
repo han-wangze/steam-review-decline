@@ -1,9 +1,12 @@
-"""一条命令跑完整条链路：聚合 → 标签 → 建模 → 导出。
+"""一条命令跑完整条链路：聚合 → 元数据 → 标签 → 审计 → 建模 → 稳健性 → 导出。
 
     python run_all.py            # 增量跑（已有聚合结果会跳过）
-    python run_all.py --refresh  # 强制重新下载并聚合全部分片（222 个，约 12 分钟）
+    python run_all.py --refresh  # 强制重新下载并聚合全部分片（221 个，约 12 分钟）
 
-依赖：pandas / numpy / pyarrow / scikit-learn。下载走 urllib，不需要 curl。
+--skip-aggregate 只跳过聚合这一步，后续步骤照常执行。
+任一步骤退出码非零都会立即中止，不会在缺数据的状态下继续往下跑。
+
+依赖：pandas / numpy / pyarrow / scikit-learn / scipy。下载走 urllib，不需要 curl。
 """
 from __future__ import annotations
 
