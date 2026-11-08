@@ -1,4 +1,4 @@
-"""一条命令跑完整条链路：聚合 → 元数据 → 标签 → 审计 → 建模 → 稳健性 → 导出。
+"""一条命令跑完整条链路：聚合 → 元数据 → 标签 → 审计 → 建模 → 稳健性 → 抽样审计 → 导出。
 
     python run_all.py            # 增量跑（已有聚合结果会跳过）
     python run_all.py --refresh  # 强制重新下载并聚合全部分片（221 个，约 12 分钟）
@@ -44,6 +44,9 @@ def main() -> None:
     run("src/check.py")
     run("src/train.py")
     run("src/robustness.py")
+    # 只跑离线部分（分片结构）。联网抽检要额外下载 4 个分片，手动执行：
+    #   python src/sampling_audit.py
+    run("src/sampling_audit.py", ["--offline"])
     run("src/export.py")
     print(f"\n全部完成，用时 {(time.time() - t0) / 60:.1f} 分钟")
     print(f"产物：out/metrics.json · out/predictions.json · site/index.html")
