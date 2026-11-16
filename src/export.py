@@ -114,7 +114,7 @@ def main() -> None:
             "positives": int(y.sum()),
             "base_rate": round(float(y.mean()), 4),
             "train_max_year": 2018,
-            "label": "上线 30 天内档位为好 → 第 30–365 天档位不再是好（窗口不重叠）",
+            "label": "首条评论后 30 天内档位为好 → 第 30–365 天档位不再是好（窗口不重叠）",
             "calibration": "按年用上一年已观测基准率做先验校正；年内排序不变",
             "positives_oos": sum(g["is_drop"] for g in oos),
         },
