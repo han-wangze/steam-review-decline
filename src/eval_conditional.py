@@ -150,6 +150,40 @@ def main() -> None:
             cells.append(f"{mm['auc']:.3f} / {mm['pos']}" if mm else "样本不足")
         print(f"  {e:<12}{cells[0]:>18}{cells[1]:>18}{cells[2]:>18}")
 
+
+    # ---- 带内 P@10 的同口径对照：AUC 判死、P@10 看还活着，必须给同一把尺子 ----
+    print("\n" + "=" * 88)
+    print("带内同口径对照（P@10）：模型 vs 单特征")
+    print("=" * 88)
+    print(f"  {'子集':<26}{'n':>6}{'正例':>6}{'单特征P@10':>12}{'模型P@10':>10}{'差':>8}")
+    for name, m in [(f"临界带 {BAND[0]:.2f}–{BAND[1]:.2f}", in_band & (~tr)),
+                    ("窄带 0.70–0.80", in_narrow & (~tr)),
+                    ("测试年全样本", ~tr)]:
+        yv = y[m]
+        if len(yv) < 30 or yv.sum() < 5:
+            continue
+        a = metrics(yv, s_single[m])
+        b = metrics(yv, s_model[m])
+        if not a or not b:
+            continue
+        print(f"  {name:<26}{b['n']:>6}{b['pos']:>6}{a['p@10']:>11.1%}{b['p@10']:>10.1%}"
+              f"{b['p@10'] - a['p@10']:>+8.1%}")
+
+    # ---- 带定义敏感性：上界 0.80 / 0.85 / 0.90 ----
+    print("\n带定义敏感性（仅测试年 2019–2022，下界固定 0.70）")
+    print(f"  {'上界':<8}{'n':>6}{'正例':>6}{'单特征AUC':>11}{'模型AUC':>9}{'ΔAUC':>8}"
+          f"{'模型P@10':>10}")
+    for hi in (0.80, 0.85, 0.90):
+        m = (~tr) & (er >= BAND[0]) & (er <= hi)
+        yv = y[m]
+        a = metrics(yv, s_single[m])
+        b = metrics(yv, s_model[m])
+        if not a or not b:
+            print(f"  {hi:<8}样本不足")
+            continue
+        print(f"  {hi:<8}{b['n']:>6}{b['pos']:>6}{a['auc']:>11.3f}{b['auc']:>9.3f}"
+              f"{b['auc'] - a['auc']:>+8.3f}{b['p@10']:>9.1%}")
+
     with open(OUT / "conditional.json", "w", encoding="utf-8") as fh:
         json.dump(res, fh, ensure_ascii=False, indent=2)
     print(f"\n已写 {OUT / 'conditional.json'}")
