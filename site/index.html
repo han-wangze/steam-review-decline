@@ -164,11 +164,13 @@ function initStats() {
     <div class="stat"><b>${fmtNum(m.positives_oos ?? 0)}</b><span>样本外真实掉档</span></div>`;
   const b = document.getElementById("base");
   if (b && m.test_base_rate != null) {
+    const bd = m.band;
     b.innerHTML = `风险分 = 第 30–365 天档位低于首月的预测概率。测试集基准 <b>${(m.test_base_rate * 100).toFixed(1)}%</b>；` +
-      `模型打分前 10% 的游戏里，<b>${(m.test_p_at_10 * 100).toFixed(1)}%</b> 真的掉了档（口径：2019–2022 全部测试样本）。`;
+      `模型打分前 10% 的游戏里，<b>${(m.test_p_at_10 * 100).toFixed(1)}%</b> 真的掉了档（口径：2019–2022 全部测试样本）。` +
+      (bd ? `<br>但这些游戏几乎都在首月好评率 0.70–0.85 的区间内（${bd.n} 款），该区间命中 <b>${(bd.p_at_10 * 100).toFixed(1)}%</b>、基准 <b>${(bd.base * 100).toFixed(1)}%</b>，AUC ${bd.auc.toFixed(3)}。` : "");
   }
   document.getElementById("note").textContent =
-    "模型只用首条评论在 2018 年及以前的游戏训练；勾选「只看样本外」后展示的是首条评论在 2019–2022 年的游戏，" +
+    "模型只用首条评论时间在 2018 年及以前的游戏训练；勾选「只看样本外」后展示的是首条评论时间在 2019–2022 年的游戏，" +
     "这些游戏的标签在训练时完全没见过。";
 }
 

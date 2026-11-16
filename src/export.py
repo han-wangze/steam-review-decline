@@ -130,6 +130,18 @@ def main() -> None:
         payload["meta"]["test_p_at_10"] = (met.get("models", {})
                                            .get("2. 全特征 LogReg", {}).get("p@10"))
 
+    # 临界带（首月好评率 0.70-0.85）的数字来自 eval_conditional.py，避免页面上写死
+    cj = OUT / "conditional.json"
+    if cj.exists():
+        with open(cj, encoding="utf-8") as fh:
+            cond = json.load(fh)
+        band = cond.get("测试年 ∩ 临界带", {}).get("model")
+        if band:
+            payload["meta"]["band"] = {
+                "n": band["n"], "pos": band["pos"],
+                "base": band["base"], "p_at_10": band["p@10"], "auc": band["auc"],
+            }
+
     OUT.mkdir(parents=True, exist_ok=True)
     with open(OUT / "predictions.json", "w", encoding="utf-8") as fh:
         json.dump(payload, fh, ensure_ascii=False, separators=(",", ":"))
